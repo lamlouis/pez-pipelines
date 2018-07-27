@@ -42,7 +42,7 @@ nsxv_edge_params: &nsxv-edge-params
   PKS_IP: ((pks_ip))
   JUMPBOX_IP: ((jumpbox_ip))
   SECOND_VLAN: ((second_vlan))
-  
+
 
 resources:
 - name: pez-pipelines
@@ -60,12 +60,22 @@ jobs:
     file: pez-pipelines/tasks/haas-1.5-without-nsxt/get-started-job/task.yml
     params: *nsxv-edge-params
 
+- name: configure-vmware
+  max_in_flight: 1
+  plan:
+  - get: pez-pipelines
+    passed: [get-started-job]
+    trigger: true
+  - task: configure-vmware
+    file: pez-pipelines/tasks/haas-1.5-without-nsxt/configure-vmware/task.yml
+    params: *nsxv-edge-params
+
 - name: destroy-edge
   max_in_flight: 1
   plan:
   - get: pez-pipelines
     trigger: true
-    passed: [get-started-job]
+    passed: [configure-vmware]
   - task: destroy-edge
     file: pez-pipelines/tasks/haas-1.5-without-nsxt/destroy-edge/task.yml
     params: *nsxv-edge-params

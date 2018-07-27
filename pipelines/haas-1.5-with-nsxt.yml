@@ -62,14 +62,14 @@ jobs:
     file: pez-pipelines/tasks/haas-1.5-with-nsxt/get-started-job/task.yml
     params: *nsxv-edge-params
 
-- name: vmware-config
+- name: configure-vmware
   max_in_flight: 1
   plan:
   - get: pez-pipelines
     passed: [get-started-job]
     trigger: true
-  - task: vmware-config
-    file: pez-pipelines/tasks/haas-1.5-with-nsxt/vmware-config/task.yml
+  - task: configure-vmware
+    file: pez-pipelines/tasks/haas-1.5-with-nsxt/configure-vmware/task.yml
     params: *nsxv-edge-params
 
 - name: destroy-edge

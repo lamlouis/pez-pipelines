@@ -10,7 +10,7 @@ inputs:
   - name: pez-pipelines
 
 run:
-  path: pez-pipelines/tasks/haas-1.5-with-nsxt/vmware-config/task.sh
+  path: pez-pipelines/tasks/haas-1.5-with-nsxt/configure-vmware/task.sh
 
 params:
   ESX_USR:
