@@ -400,7 +400,7 @@ for ip in $(echo $PAS_TCPROUTER_IP | sed "s/,/ /g")
 do
   pynsxv_local lb add_member \
     --esg_name $NSX_EDGE_GEN_NAME \
-    --pool_name PAS-TCPRouter--Pool \
+    --pool_name PAS-TCPRouter-Pool \
     --member_name PAS-TCPRouter-${ip##*.} \
     --member $ip \
     --monitor_port 80
@@ -483,7 +483,6 @@ pynsxv_local nat add_nat \
   --protocol=tcp \
   --description='Diego SSH'
 
-
 # TCP Router
 pynsxv_local nat add_nat \
   --esg_name $NSX_EDGE_GEN_NAME \
@@ -495,7 +494,6 @@ pynsxv_local nat add_nat \
   --nat_vnic=0 \
   --protocol=tcp \
   --description='TCP Routing'
-
 
 # Jumpbox
 pynsxv_local nat add_nat \
