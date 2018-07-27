@@ -10,6 +10,6 @@ inputs:
   - name: pez-pipelines
 
 run:
-  path: pez-pipelines/tasks/haas-1.5-without-nsxt/destroy-edge/task.sh
+  path: pez-pipelines/tasks/haas-1.5-without-nsxt/get-started-job/task.sh
 
 params:
