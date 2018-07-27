@@ -42,7 +42,7 @@ nsxv_edge_params: &nsxv-edge-params
   PKS_IP: ((pks_ip))
   JUMPBOX_IP: ((jumpbox_ip))
   SECOND_VLAN: ((second_vlan))
-  MTU: ((mtu))
+  
 
 resources:
 - name: pez-pipelines
