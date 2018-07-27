@@ -1,0 +1,81 @@
+---
+
+nsxv_edge_params: &nsxv-edge-params
+  HAAS_SLOT: ((haas_slot))
+  HAAS_SLOT_NETWORKS: ((haas_slot_networks))
+  VCENTER_HOST: ((vcenter_host))
+  VCENTER_USR: ((vcenter_usr))
+  VCENTER_PWD: ((vcenter_pwd))
+  VCENTER_DATA_CENTER: ((vcenter_data_center))
+  VCENTER_CLUSTER: ((vcenter_cluster))
+  NSX_EDGE_GEN_NSX_MANAGER_ADDRESS: ((nsx_edge_gen_nsx_manager_address))
+  NSX_EDGE_GEN_NSX_MANAGER_ADMIN_USER: ((nsx_edge_gen_nsx_manager_admin_user))
+  NSX_EDGE_GEN_NSX_MANAGER_ADMIN_PASSWD: ((nsx_edge_gen_nsx_manager_admin_passwd))
+  NSX_EDGE_GEN_NSX_MANAGER_TRANSPORT_ZONE: ((nsx_edge_gen_nsx_manager_transport_zone))
+  NSX_EDGE_GEN_EDGE_DATASTORE: ((nsx_edge_gen_edge_datastore))
+  NSX_EDGE_GEN_EDGE_CLUSTER: ((nsx_edge_gen_edge_cluster))
+  NSX_EDGE_GEN_NAME: ((nsx_edge_gen_name))
+  ESG_CLI_PASSWORD_1: ((esg_cli_password_1))
+  ERT_SSL_CERT: ((ert_ssl_cert))
+  ERT_SSL_PRIVATE_KEY: ((ert_ssl_private_key))
+  ESG_UPLINK_PG: ((esg_uplink_pg))
+  ESG_UPLINK_IP: ((esg_uplink_ip))
+  ESG_UPLINK_MASK: ((esg_uplink_mask))
+  ESG_INTERNAL_PG_1: ((esg_internal_pg_1))
+  ESG_INTERNAL_IP_1: ((esg_internal_ip_1))
+  ESG_INTERNAL_LB_IP_1: ((esg_internal_lb_ip_1))
+  ESG_INTERNAL_MASK_1: ((esg_internal_mask_1))
+  ESG_INTERNAL_PG_2: ((esg_internal_pg_2))
+  ESG_INTERNAL_IP_2: ((esg_internal_ip_2))
+  ESG_INTERNAL_MASK_2: ((esg_internal_mask_2))
+  ESG_OSPF_AREA: ((esg_ospf_area))
+  ESG_OSPF_PASSWORD: ((esg_ospf_password))
+  ESG_DEFAULT_GATEWAY: ((esg_default_gateway))
+  OM01_IP: ((om01_ip))
+  PAS_GOROUTER_IP: ((pas_gorouter_ip))
+  PAS_SSHPROXY_IP: ((pas_sshproxy_ip))
+  PAS_TCPROUTER_IP: ((pas_tcprouter_ip))
+  PAS_GOROUTER_VIP: ((pas_gorouter_vip))
+  PAS_SSHPROXY_VIP: ((pas_sshproxy_vip))
+  PAS_TCPROUTER_VIP: ((pas_tcprouter_vip))
+  OM02_IP: ((om02_ip))
+  PKS_IP: ((pks_ip))
+  JUMPBOX_IP: ((jumpbox_ip))
+  SECOND_VLAN: ((second_vlan))
+  MTU: ((mtu))
+
+resources:
+- name: pez-pipelines
+  type: git
+  source:
+    uri: https://github.com/lamlouis/pez-pipelines
+
+jobs:
+
+- name: get-started-job
+  max_in_flight: 1
+  plan:
+  - get: pez-pipelines
+  - task: get-started-task
+    file: pez-pipelines/tasks/haas-1.5-without-nsxt/get-started-job/task.yml
+    params: *nsxv-edge-params
+
+- name: destroy-edge
+  max_in_flight: 1
+  plan:
+  - get: pez-pipelines
+    trigger: true
+    passed: [get-started-job]
+  - task: destroy-edge
+    file: pez-pipelines/tasks/haas-1.5-without-nsxt/destroy-edge/task.yml
+    params: *nsxv-edge-params
+
+- name: create-edge
+  max_in_flight: 1
+  plan:
+  - get: pez-pipelines
+    passed: [destroy-edge]
+    trigger: true
+  - task: create-edge
+    file: pez-pipelines/tasks/haas-1.5-without-nsxt/create-edge/task.yml
+    params: *nsxv-edge-params

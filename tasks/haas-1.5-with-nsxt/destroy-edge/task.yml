@@ -1,0 +1,26 @@
+---
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: lamlouis/pez-docker}
+
+inputs:
+  - name: pez-pipelines
+
+run:
+  path: pez-pipelines/tasks/haas-1.5-with-nsxt/destroy-edge/task.sh
+
+params:
+  VCENTER_HOST:
+  VCENTER_USR:
+  VCENTER_PWD:
+  VCENTER_DATA_CENTER:
+  NSX_EDGE_GEN_NSX_MANAGER_ADDRESS:
+  NSX_EDGE_GEN_NSX_MANAGER_ADMIN_USER:
+  NSX_EDGE_GEN_NSX_MANAGER_ADMIN_PASSWD:
+  NSX_EDGE_GEN_NSX_MANAGER_TRANSPORT_ZONE:
+  NSX_EDGE_GEN_EDGE_DATASTORE:
+  NSX_EDGE_GEN_EDGE_CLUSTER:
+  NSX_EDGE_GEN_NAME:

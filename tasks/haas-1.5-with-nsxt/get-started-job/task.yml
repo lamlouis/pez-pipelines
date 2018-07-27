@@ -1,0 +1,15 @@
+---
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: lamlouis/pez-docker}
+
+inputs:
+  - name: pez-pipelines
+
+run:
+  path: pez-pipelines/tasks/haas-1.5-with-nsxt/get-started-job/task.sh
+
+params:
