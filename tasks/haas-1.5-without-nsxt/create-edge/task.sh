@@ -144,10 +144,14 @@ pynsxv_local esg create_fw_rule \
 pynsxv_local lb --esg_name $NSX_EDGE_GEN_NAME  enable_lb
 
 
-
 # add LB IP to the interface
 # This is for URL Switching
 
+echo '##################################'
+echo 'adding secondary IPs to interfaces'
+echo '##################################'
+
+# create secondary IPs
 pynsxv_local esg cfg_interface \
   --esg_name $NSX_EDGE_GEN_NAME \
   --portgroup $ESG_INTERNAL_PG_1 \
@@ -158,7 +162,22 @@ pynsxv_local esg cfg_interface \
   --vnic_mask $ESG_INTERNAL_MASK_1 \
   --vnic_secondary_ip $ESG_INTERNAL_LB_IP_1
 
+pynsxv_local esg cfg_interface \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --portgroup $ESG_INTERNAL_PG_2 \
+  --vnic_index 2 \
+  --vnic_type internal \
+  --vnic_name "vnic2" \
+  --vnic_ip $ESG_INTERNAL_IP_2 \
+  --vnic_mask $ESG_INTERNAL_MASK_2 \
+  --vnic_secondary_ip $PAS_GOROUTER_VIP,$PAS_SSHPROXY_VIP,$PAS_TCPROUTER_VIP
+
+echo '################################'
+echo 'Configuring LB for URL Switching'
+echo '################################'
+
 # create Application Profiles
+echo 'creating Application Profiles for URL switching'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
   --profile_name URL-Switching-HTTP --protocol HTTP
@@ -171,7 +190,7 @@ pynsxv_local lb add_profile \
   --pool_side_ssl true
 
 # create pools with members
-
+echo 'creating pools and members for URL switcing'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name OpsManager-HTTP-Pool \
@@ -220,11 +239,12 @@ pynsxv_local lb add_member \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name PAS-GoRouterVIP-HTTPS-Pool \
   --member_name PAS-GoRouterVIP \
-  --member $PAS_GOROUTER_VIP_NAT_IP \
+  --member $PAS_GOROUTER_VIP \
   --port 443 \
   --monitor_port 443
 
 # Create Virtual Servers
+echo 'creating Virtual Servers for URL Switching'
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-URL-Switching-HTTP \
@@ -243,41 +263,36 @@ pynsxv_local lb add_vip \
   --port 443 \
   --protocol HTTPS
 
-# Create VS for Go Routers
-# add IP to interface
-pynsxv_local esg cfg_interface \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --portgroup $ESG_INTERNAL_PG_2 \
-  --vnic_index 2 \
-  --vnic_type uplink \
-  --vnic_name "vnic2" \
-  --vnic_ip $ESG_INTERNAL_IP_2 \
-  --vnic_mask $ESG_INTERNAL_MASK_1 \
-  --vnic_secondary_ip $PAS_GOROUTER_VIP
+echo '#############################'
+echo 'configuring LB for Go Routers'
+echo '#############################'
 
 # create Application Profiles
+echo 'creating Application Profiles for Go Routers'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
-  --profile_name GoRouter-HTTP-Profile --protocol HTTP
+  --profile_name PAS-GoRouter-HTTP-Profile --protocol HTTP
 
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
-  --profile_name GoRouter-HTTPS-Profile \
+  --profile_name PAS-GoRouter-HTTPS-Profile \
   --protocol HTTPS --xforwardedfor true \
   --cert_name opsmgr.haas-$HAAS_SLOT.pez.pivotal.io \
   --pool_side_ssl true
 
+# creating pools and members
+echo 'creating pools and members for Go Routers'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name PAS-GoRouter-HTTP-Pool \
   --monitor default_tcp_monitor
 
-for ip in $(echo $PAS_GOROUTER_IP | sed "s/,/ /g") do
-  IFS=. read ip1 ip2 ip3 ip4 <<< "$ip"
+for ip in $(echo $PAS_GOROUTER_IP | sed "s/,/ /g")
+do
   pynsxv_local lb add_member \
     --esg_name $NSX_EDGE_GEN_NAME \
     --pool_name PAS-GoRouter-HTTP-Pool \
-    --member_name PAS-GoRouter-$ip4 \
+    --member_name PAS-GoRouter-${ip##*.} \
     --member $ip \
     --port 80 \
     --monitor_port 80
@@ -288,24 +303,25 @@ pynsxv_local lb add_pool \
   --pool_name PAS-GoRouter-HTTPS-Pool \
   --monitor default_tcp_monitor
 
-for ip in $(echo $PAS_GOROUTER_IP | sed "s/,/ /g") do
-  IFS=. read ip1 ip2 ip3 ip4 <<< "$ip"
+for ip in $(echo $PAS_GOROUTER_IP | sed "s/,/ /g")
+do
   pynsxv_local lb add_member \
     --esg_name $NSX_EDGE_GEN_NAME \
     --pool_name PAS-GoRouter-HTTPS-Pool \
-    --member_name PAS-GoRouter-$ip4 \
+    --member_name PAS-GoRouter-${ip##*.} \
     --member $ip \
     --port 443 \
     --monitor_port 443
 done
 
 # Create Virtual Servers
+echo 'creating Virtual Servers for Go Routers'
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-PAS-GoRouter-HTTP \
   --pool_name PAS-GoRouter-HTTP-Pool \
   --profile_name PAS-GoRouter-HTTP-Profile \
-  --vip_ip $PAS_SSHPROXY_VIP \
+  --vip_ip $PAS_GOROUTER_VIP \
   --port 80 \
   --protocol HTTP
 
@@ -314,95 +330,93 @@ pynsxv_local lb add_vip \
   --vip_name VS-PAS-GoRouter-HTTPS \
   --pool_name PAS-GoRouter-HTTPS-Pool \
   --profile_name PAS-GoRouter-HTTPS-Profile \
-  --vip_ip $PAS_SSHPROXY_VIP \
+  --vip_ip $PAS_GOROUTER_VIP \
   --port 443 \
   --protocol HTTPS
 
-
-
-
-
-  ---
-
-
-# create pools
-pynsxv_local lb add_pool \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name SSHProxy-Pool \
-  --monitor default_tcp_monitor
-
-# add members
-for ip in $(echo $PAS_SSHPROXY_IP | sed "s/,/ /g") do
-  IFS=. read ip1 ip2 ip3 ip4 <<< "$ip"
-  pynsxv_local lb add_member \
-    --esg_name $NSX_EDGE_GEN_NAME \
-    --pool_name SSH-Proxy-Pool \
-    --member_name SSHProxy-$ip4 \
-    --member $ip \
-    --port 2222 \
-    --monitor_port 2222
-done
-
-# Create Virtual Server
-pynsxv_local lb add_vip \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --vip_name VS-SSHProxy \
-  --pool_name SSHProxy-Pool \
-  --profile_name SSHProxy-Profile \
-  --vip_ip $PAS_SSHPROXY_VIP \
-  --port 2222 \
-  --protocol TCP
-
-
 # Create VS for SSH Proxy
-
-# add IP to interface
-pynsxv_local esg cfg_interface \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --portgroup $ESG_INTERNAL_PG_2 \
-  --vnic_index 2 \
-  --vnic_type uplink \
-  --vnic_name "vnic2" \
-  --vnic_ip $ESG_INTERNAL_IP_2 \
-  --vnic_mask $ESG_INTERNAL_MASK_1 \
-  --vnic_secondary_ip $PAS_SSHPROXY_VIP
+echo '##############################'
+echo 'configuring LB for SSH proxies'
+echo '##############################'
 
 # create Application Profiles
+echo 'creating Application Profiles for SSH proxies'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
-  --profile_name SSHProxy-Profile --protocol TCP
+  --profile_name PAS-SSHProxy-Profile --protocol TCP
 
 # create pools
+echo 'creating pools and members for SSH proxies'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name SSHProxy-Pool \
+  --pool_name PAS-SSHProxy-Pool \
   --monitor default_tcp_monitor
 
 # add members
-for ip in $(echo $PAS_SSHPROXY_IP | sed "s/,/ /g") do
-  IFS=. read ip1 ip2 ip3 ip4 <<< "$ip"
+for ip in $(echo $PAS_SSHPROXY_IP | sed "s/,/ /g")
+do
   pynsxv_local lb add_member \
     --esg_name $NSX_EDGE_GEN_NAME \
-    --pool_name OpsManager-HTTP-Pool \
-    --member_name SSHProxy-$ip4 \
+    --pool_name PAS-SSHProxy-Pool \
+    --member_name PAS-SSHProxy-${ip##*.} \
     --member $ip \
     --port 2222 \
     --monitor_port 2222
 done
 
 # Create Virtual Server
+echo 'configuring Virtual Servers for SSH proxies'
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-SSHProxy \
-  --pool_name SSHProxy-Pool \
-  --profile_name SSHProxy-Profile \
+  --pool_name PAS-SSHProxy-Pool \
+  --profile_name PAS-SSHProxy-Profile \
   --vip_ip $PAS_SSHPROXY_VIP \
   --port 2222 \
   --protocol TCP
 
 
+# Create VS for TCP Router
 
-# need for for gorouter?
+echo '##############################'
+echo 'configuring LB for TCP Routers'
+echo '##############################'
+
+# create Application Profiles
+echo 'creating Application Servers for TCP routers'
+pynsxv_local lb add_profile \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --profile_name PAS-TCPRouter-Profile --protocol TCP
+
+  # create pools
+echo 'creating pools and members for TCP routers'
+pynsxv_local lb add_pool \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --pool_name PAS-TCPRouter-Pool \
+  --monitor default_tcp_monitor
+
+# add members
+for ip in $(echo $PAS_TCPROUTER_IP | sed "s/,/ /g")
+do
+  pynsxv_local lb add_member \
+    --esg_name $NSX_EDGE_GEN_NAME \
+    --pool_name PAS-TCPRouter--Pool \
+    --member_name PAS-TCPRouter-${ip##*.} \
+    --member $ip \
+    --monitor_port 80
+done
+
+# Create Virtual Server
+echo 'creating Virtual Servers for TCP routers'
+pynsxv_local lb add_vip \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --vip_name VS-PAS-TCPRouter \
+  --pool_name PAS-TCPRouter-Pool \
+    --profile_name PAS-TCPRouter-Profile \
+      --vip_ip $PAS_TCPROUTER_VIP \
+        --port 10000-10050 \
+	  --protocol TCP
+
 
 ## creating rules doesn't work because somehow the \r\n are not intrepreted, so it's hardcoded in the docker image for now.
 
@@ -418,6 +432,8 @@ pynsxv_local lb add_vip \
 #  --rule_script 'acl OM hdr_beg(host) -i opsmgr \r\n use_backend OpsManager-HTTPS-Pool if OM'
 
 # doesn't matter the rule name. It's hardcoded.
+
+echo 'creating application rules'
 pynsxv_local lb add_rule \
   --esg_name $NSX_EDGE_GEN_NAME \
   --rule_name Whatever \
@@ -425,6 +441,7 @@ pynsxv_local lb add_rule \
 
 # add rules to virtual servers
 
+echo 'applying application rules'
 pynsxv_local lb add_rule_to_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-URL-Switching-HTTP \
@@ -441,12 +458,13 @@ pynsxv_local lb add_rule_to_vip \
 
 # NAT rule $ESG_INTERNAL_LB_IP_1 is also used for PAT
 
+echo 'creating NAT rules'
 # ssh to OM01
 pynsxv_local nat add_nat \
   --esg_name $NSX_EDGE_GEN_NAME \
   --nat_type dnat \
   --original_ip $ESG_INTERNAL_LB_IP_1 \
-  --translated_ip $OM01_NAT_IP \
+  --translated_ip $OM01_IP \
   --original_port 22 \
   --translated_port 22 \
   --nat_vnic=0 \
@@ -458,7 +476,7 @@ pynsxv_local nat add_nat \
   --esg_name $NSX_EDGE_GEN_NAME \
   --nat_type dnat \
   --original_ip $ESG_INTERNAL_LB_IP_1 \
-  --translated_ip $PAS_SSHPROXY_VIP_NAT_IP \
+  --translated_ip $PAS_SSHPROXY_VIP \
   --original_port 2222 \
   --translated_port 2222 \
   --nat_vnic=0 \
@@ -471,7 +489,7 @@ pynsxv_local nat add_nat \
   --esg_name $NSX_EDGE_GEN_NAME \
   --nat_type dnat \
   --original_ip $ESG_INTERNAL_LB_IP_1 \
-  --translated_ip $PAS_TCPROUTER_VIP_NAT_IP \
+  --translated_ip $PAS_TCPROUTER_VIP \
   --original_port 10000-10050 \
   --translated_port 10000-10050 \
   --nat_vnic=0 \
