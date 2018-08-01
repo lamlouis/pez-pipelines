@@ -3,6 +3,7 @@
 nsxv_edge_params: &nsxv-edge-params
   HAAS_SLOT: ((haas_slot))
   HAAS_SLOT_NETWORKS: ((haas_slot_networks))
+  HAAS_SLOT_NAT_IP: ((haas_slot_nat_ip))
   VCENTER_HOST: ((vcenter_host))
   VCENTER_USR: ((vcenter_usr))
   VCENTER_PWD: ((vcenter_pwd))
@@ -11,6 +12,7 @@ nsxv_edge_params: &nsxv-edge-params
   ESX_USR: ((esx_usr))
   ESX_PWD: ((esx_pwd))
   ESX_HOST: ((esx_host))
+  NSX_EDGE_EXTERNAL_ZONE: ((nsx_edge_external_zone))
   NSX_EDGE_GEN_NSX_MANAGER_ADDRESS: ((nsx_edge_gen_nsx_manager_address))
   NSX_EDGE_GEN_NSX_MANAGER_ADMIN_USER: ((nsx_edge_gen_nsx_manager_admin_user))
   NSX_EDGE_GEN_NSX_MANAGER_ADMIN_PASSWD: ((nsx_edge_gen_nsx_manager_admin_passwd))

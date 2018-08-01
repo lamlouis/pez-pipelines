@@ -26,6 +26,7 @@ pynsxv_local() {
 }
 
 # delete the NAT rules on sc2-esg-external-zone
+echo "deleting NAT on $NSX_EDGE_EXTERNAL_ZONE"
 
 # pick out the first 3 octets of the IP address
 NET=`echo $ESG_INTERNAL_IP_1 | sed 's/\.[0-9]*$//'`
@@ -44,5 +45,8 @@ pynsxv_local nat get_nat_rules_tip \
 done
 
 # delete the edge
-pynsxv_local esg delete
+
+echo "deleting edge"
+
+pynsxv_local esg delete \
   --esg_name $NSX_EDGE_GEN_NAME

@@ -458,7 +458,7 @@ pynsxv_local lb add_rule_to_vip \
 
 # NAT rule $ESG_INTERNAL_LB_IP_1 is also used for PAT
 
-echo 'creating NAT rules'
+echo "creating NAT rules on slot edge $NSX_EDGE_GEN_NAME"
 # ssh to OM01
 pynsxv_local nat add_nat \
   --esg_name $NSX_EDGE_GEN_NAME \
@@ -506,3 +506,16 @@ pynsxv_local nat add_nat \
   --nat_vnic=1 \
   --protocol=tcp \
   --description='Jumpbox'
+
+# creating NAT on sc2-esg-external-zone for the slot
+echo "creating NAT rules on edge $NSX_EDGE_EXTERNAL_ZONE"
+pynsxv_local nat add_nat \
+  --esg_name $NSX_EDGE_EXTERNAL_ZONE \
+  --nat_type dnat \
+  --original_ip $HAAS_SLOT_NAT_IP \
+  --translated_ip $ESG_INTERNAL_LB_IP_1 \
+  --original_port any \
+  --translated_port any \
+  --nat_vnic=0 \
+  --protocol=tcp \
+  --description="Slot $HAAS_SLOT"
