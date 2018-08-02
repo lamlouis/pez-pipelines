@@ -327,7 +327,7 @@ pynsxv_local nat add_nat \
   --translated_ip $JUMPBOX_IP \
   --original_port 3389 \
   --translated_port 3389 \
-  --nat_vnic=1 \
+  --nat_vnic=0 \
   --protocol=tcp \
   --description='Jumpbox'
 
