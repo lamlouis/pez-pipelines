@@ -1,8 +1,10 @@
 #!/bin/bash -eu
 #
 
+#
 # create vSwitch1
-
+#
+#
 /opt/pyvmomi/add_vswitch_to_host.py \
   --user $ESX_USR \
   --password $ESX_PWD \
