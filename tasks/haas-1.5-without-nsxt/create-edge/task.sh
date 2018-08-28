@@ -160,24 +160,13 @@ pynsxv_local esg cfg_interface \
   --vnic_name "vnic1" \
   --vnic_ip $ESG_INTERNAL_IP_1 \
   --vnic_mask $ESG_INTERNAL_MASK_1 \
-  --vnic_secondary_ip $ESG_INTERNAL_LB_IP_1
-
-pynsxv_local esg cfg_interface \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --portgroup $ESG_INTERNAL_PG_2 \
-  --vnic_index 2 \
-  --vnic_type internal \
-  --vnic_name "vnic2" \
-  --vnic_ip $ESG_INTERNAL_IP_2 \
-  --vnic_mask $ESG_INTERNAL_MASK_2 \
-  --vnic_secondary_ip $PAS_GOROUTER_VIP,$PAS_SSHPROXY_VIP,$PAS_TCPROUTER_VIP
+  --vnic_secondary_ip $ESG_INTERNAL_LB_IP_1,$PAS_GOROUTER_VIP,$PAS_SSHPROXY_VIP,$PAS_TCPROUTER_VIP
 
 echo '################################'
 echo 'Configuring LB for URL Switching'
 echo '################################'
 
 # create Application Profiles
-echo 'creating Application Profiles for URL switching'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
   --profile_name URL-Switching-HTTP --protocol HTTP
@@ -190,7 +179,6 @@ pynsxv_local lb add_profile \
   --pool_side_ssl true
 
 # create pools with members
-echo 'creating pools and members for URL switcing'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name OpsManager-HTTP-Pool \
@@ -217,71 +205,6 @@ pynsxv_local lb add_member \
   --port 443 \
   --monitor_port 443
 
-pynsxv_local lb add_pool \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name PAS-GoRouterVIP-HTTP-Pool \
-  --monitor default_tcp_monitor
-
-pynsxv_local lb add_member \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name PAS-GoRouterVIP-HTTP-Pool \
-  --member_name PAS-GoRouterVIP \
-  --member $PAS_GOROUTER_VIP \
-  --port 80 \
-  --monitor_port 80
-
-pynsxv_local lb add_pool \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name PAS-GoRouterVIP-HTTPS-Pool \
-  --monitor default_tcp_monitor
-
-pynsxv_local lb add_member \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --pool_name PAS-GoRouterVIP-HTTPS-Pool \
-  --member_name PAS-GoRouterVIP \
-  --member $PAS_GOROUTER_VIP \
-  --port 443 \
-  --monitor_port 443
-
-# Create Virtual Servers
-echo 'creating Virtual Servers for URL Switching'
-pynsxv_local lb add_vip \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --vip_name VS-URL-Switching-HTTP \
-  --pool_name PAS-GoRouterVIP-HTTP-Pool \
-  --profile_name URL-Switching-HTTP \
-  --vip_ip $ESG_INTERNAL_LB_IP_1 \
-  --port 80 \
-  --protocol HTTP
-
-pynsxv_local lb add_vip \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --vip_name VS-URL-Switching-HTTPS \
-  --pool_name PAS-GoRouterVIP-HTTPS-Pool \
-  --profile_name URL-Switching-HTTPS \
-  --vip_ip $ESG_INTERNAL_LB_IP_1 \
-  --port 443 \
-  --protocol HTTPS
-
-echo '#############################'
-echo 'configuring LB for Go Routers'
-echo '#############################'
-
-# create Application Profiles
-echo 'creating Application Profiles for Go Routers'
-pynsxv_local lb add_profile \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --profile_name PAS-GoRouter-HTTP-Profile --protocol HTTP
-
-pynsxv_local lb add_profile \
-  --esg_name $NSX_EDGE_GEN_NAME \
-  --profile_name PAS-GoRouter-HTTPS-Profile \
-  --protocol HTTPS --xforwardedfor true \
-  --cert_name opsmgr.haas-$HAAS_SLOT.pez.pivotal.io \
-  --pool_side_ssl true
-
-# creating pools and members
-echo 'creating pools and members for Go Routers'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name PAS-GoRouter-HTTP-Pool \
@@ -315,7 +238,42 @@ do
 done
 
 # Create Virtual Servers
-echo 'creating Virtual Servers for Go Routers'
+pynsxv_local lb add_vip \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --vip_name VS-URL-Switching-HTTP \
+  --pool_name PAS-GoRouter-HTTP-Pool \
+  --profile_name URL-Switching-HTTP \
+  --vip_ip $ESG_INTERNAL_LB_IP_1 \
+  --port 80 \
+  --protocol HTTP
+
+pynsxv_local lb add_vip \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --vip_name VS-URL-Switching-HTTPS \
+  --pool_name PAS-GoRouter-HTTPS-Pool \
+  --profile_name URL-Switching-HTTPS \
+  --vip_ip $ESG_INTERNAL_LB_IP_1 \
+  --port 443 \
+  --protocol HTTPS
+
+
+echo '#############################'
+echo 'configuring LB for Go Routers'
+echo '#############################'
+
+# create Application Profiles
+pynsxv_local lb add_profile \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --profile_name PAS-GoRouter-HTTP-Profile --protocol HTTP
+
+pynsxv_local lb add_profile \
+  --esg_name $NSX_EDGE_GEN_NAME \
+  --profile_name PAS-GoRouter-HTTPS-Profile \
+  --protocol HTTPS --xforwardedfor true \
+  --cert_name opsmgr.haas-$HAAS_SLOT.pez.pivotal.io \
+  --pool_side_ssl true
+
+# Create Virtual Servers
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-PAS-GoRouter-HTTP \
@@ -340,13 +298,11 @@ echo 'configuring LB for SSH proxies'
 echo '##############################'
 
 # create Application Profiles
-echo 'creating Application Profiles for SSH proxies'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
   --profile_name PAS-SSHProxy-Profile --protocol TCP
 
 # create pools
-echo 'creating pools and members for SSH proxies'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name PAS-SSHProxy-Pool \
@@ -365,10 +321,9 @@ do
 done
 
 # Create Virtual Server
-echo 'configuring Virtual Servers for SSH proxies'
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
-  --vip_name VS-SSHProxy \
+  --vip_name VS-PAS-SSHProxy \
   --pool_name PAS-SSHProxy-Pool \
   --profile_name PAS-SSHProxy-Profile \
   --vip_ip $PAS_SSHPROXY_VIP \
@@ -383,13 +338,11 @@ echo 'configuring LB for TCP Routers'
 echo '##############################'
 
 # create Application Profiles
-echo 'creating Application Servers for TCP routers'
 pynsxv_local lb add_profile \
   --esg_name $NSX_EDGE_GEN_NAME \
   --profile_name PAS-TCPRouter-Profile --protocol TCP
 
   # create pools
-echo 'creating pools and members for TCP routers'
 pynsxv_local lb add_pool \
   --esg_name $NSX_EDGE_GEN_NAME \
   --pool_name PAS-TCPRouter-Pool \
@@ -407,7 +360,6 @@ do
 done
 
 # Create Virtual Server
-echo 'creating Virtual Servers for TCP routers'
 pynsxv_local lb add_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-PAS-TCPRouter \
@@ -451,8 +403,6 @@ pynsxv_local lb add_rule_to_vip \
   --esg_name $NSX_EDGE_GEN_NAME \
   --vip_name VS-URL-Switching-HTTPS \
   --rule_name URL-Switching-HTTPS
-
-
 
 
 
